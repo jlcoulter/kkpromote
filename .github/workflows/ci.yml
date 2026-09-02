@@ -3,7 +3,6 @@ name: CI
 on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
   pull_request:
     branches: [main]
 
@@ -24,7 +23,7 @@ jobs:
 
   publish:
     needs: build-and-test
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -41,7 +40,22 @@ jobs:
       - run: npm install -g npm@latest
       - run: npm ci
       - run: npm test
-      - run: npm publish
-      - env:
+      - name: Publish to npm
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          published="$(npm view "kkpromote@${version}" version 2>/dev/null || true)"
+          if [ "$published" = "$version" ]; then
+            echo "kkpromote@${version} is already on npm, skipping publish"
+          else
+            npm publish
+          fi
+      - name: Create GitHub Release
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if gh release view "$version" >/dev/null 2>&1; then
+            echo "${version} already exists, skipping GitHub Release"
+          else
+            gh release create "$version" --generate-notes --target "$GITHUB_SHA"
+          fi
