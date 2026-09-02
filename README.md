@@ -1,28 +1,40 @@
 # kkpromote
 
-Gitops Kubernets Kustomize image tag promoter.
+A container image tag promoter for Gitops that works with Kubernetes and Kustomize, promoting an application from one Kustomize environment overlay to another.
 
-Promote a container image tag for an application from one Kustomize environment
-overlay to another in a GitOps repository 
+[![CI](https://github.com/steveswinsburg/kkpromote/actions/workflows/ci.yml/badge.svg)](https://github.com/steveswinsburg/kkpromote/actions/workflows/ci.yml)
 
-It expects the conventional layout, where `path` points to the application's
-directory and each environment is a subdirectory containing that overlay's
-`kustomization.yaml`:
+Promotes a container image tag for an application from one Kustomize environment
+overlay to another in a GitOps repository.
+
+### Relationship to kustomize
+
+Kustomize's native `kustomize edit set image <name>=<newName>:<newTag>` can
+*write* an image tag into a `kustomization.yaml`, but it has no command to
+*read* a tag from another overlay and no notion of *promoting* between
+environments. 
+
+**kkpromote** performs both the read and the write directly against
+the YAML, so it needs no `kustomize` binary installed and preserves comments and
+formatting in the edited file.
+
+## How it works
+
+This tool reads the kustomization.yaml from the environment and updates the image tag.
+
+Let's assume your gitops repo is laid out like this:
 
 ```
-<path>/                      e.g. <gitops-repo>/applications/my-app
+my-app/                     
 ├── dev/
 │   └── kustomization.yaml
-├── sit/
+├── test/
 │   └── kustomization.yaml
 └── prod/
     └── kustomization.yaml
 ```
 
-The application name used to match the image entry is the basename of `path`
-(e.g. `my-app` above). It copies the `newTag` of the image whose name
-ends with `/<application>` from the source overlay into the target overlay,
-preserving comments and formatting.
+When you run `kkpromote my-app dev test` it will copy the `newTag` of the `my-app` image from the source overlay (dev) into the target overlay (test).
 
 ## Install
 
@@ -69,15 +81,6 @@ const result = promote({
 });
 // { changed: true, tag: '1.2.3', previousTag: '1.0.0', ... }
 ```
-
-## Relationship to kustomize
-
-Kustomize's native `kustomize edit set image <name>=<newName>:<newTag>` can
-*write* an image tag into a `kustomization.yaml`, but it has no command to
-*read* a tag from another overlay and no notion of promoting between
-environments. This tool performs both the read and the write directly against
-the YAML, so it needs no `kustomize` binary installed and preserves comments and
-formatting in the edited file.
 
 ## Development
 
