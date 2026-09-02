@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="kkpromote.png" alt="kkpromote" width="420">
+</p>
+
 # kkpromote
 
 A container image tag promoter for Gitops that works with Kubernetes and Kustomize, promoting an application from one Kustomize environment overlay to another.
