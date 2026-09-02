@@ -10,13 +10,12 @@ const USAGE = `kkpromote - promote an application's image tag between Kustomize 
 Usage:
   kkpromote <application> <source-env> <target-env> [options]
   kkpromote <path> <application> <source-env> <target-env> [options]
-  kkpromote <source-env> <target-env> [options]
 
 Arguments:
   path           directory to search for the application (default: current directory)
   application    application name (directory and image name to match)
-  source-env     environment subdirectory to copy the image tag from
-  target-env     environment subdirectory to copy the image tag into
+  source-env     environment subdirectory to copy the image tag FROM
+  target-env     environment subdirectory to copy the image tag TO
 
 Options:
   -n, --dry-run       show the change without writing the file
@@ -25,8 +24,7 @@ Options:
 
 Examples:
   kkpromote my-app dev test
-  kkpromote ~/dev/my-gitops-repo/applications my-app dev sit
-  kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit`;
+  kkpromote ~/dev/my-gitops-repo/applications my-app dev sit`;
 
 function parseArgs(argv) {
   const positionals = [];
