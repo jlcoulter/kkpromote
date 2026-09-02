@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
-import { promote, PromoteError, kustomizationPath } from '../src/promote.js';
+import { promote, PromoteError, kustomizationPath, optionsFromArgs } from '../src/promote.js';
 
 const REGISTRY = 'registry.example.com';
 
@@ -41,6 +41,16 @@ function tagIn(path, env) {
 // path is `<tmp-root>/applications/<application>`; remove the whole tmp root.
 function cleanup(path) {
   rmSync(dirname(dirname(path)), { recursive: true, force: true });
+}
+
+function withCwd(dir, fn) {
+  const previous = process.cwd();
+  process.chdir(dir);
+  try {
+    return fn();
+  } finally {
+    process.chdir(previous);
+  }
 }
 
 test('promotes the source tag into the target overlay', () => {
@@ -130,4 +140,117 @@ test('errors when no image entry matches the application', () => {
   } finally {
     rmSync(repo, { recursive: true, force: true });
   }
+});
+
+test('finds the application in the current directory when path is omitted', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    const result = withCwd(dirname(path), () =>
+      promote({ application: 'my-app', sourceEnv: 'dev', targetEnv: 'sit' }),
+    );
+    assert.equal(result.changed, true);
+    assert.equal(result.application, 'my-app');
+    assert.equal(tagIn(path, 'sit'), '1.2.3');
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('finds overlays in the current directory when it is the application', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    const result = withCwd(path, () =>
+      promote({ application: 'my-app', sourceEnv: 'dev', targetEnv: 'sit' }),
+    );
+    assert.equal(result.changed, true);
+    assert.equal(tagIn(path, 'sit'), '1.2.3');
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('infers the application from the current directory when only envs are given', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    const result = withCwd(path, () =>
+      promote({ sourceEnv: 'dev', targetEnv: 'sit' }),
+    );
+    assert.equal(result.changed, true);
+    assert.equal(result.application, 'my-app');
+    assert.equal(tagIn(path, 'sit'), '1.2.3');
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('finds the application under an explicit parent path', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    const result = promote({
+      path: dirname(path),
+      application: 'my-app',
+      sourceEnv: 'dev',
+      targetEnv: 'sit',
+    });
+    assert.equal(result.changed, true);
+    assert.equal(tagIn(path, 'sit'), '1.2.3');
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('errors when the application cannot be found in the current directory', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    withCwd(dirname(path), () => {
+      assert.throws(
+        () => promote({ application: 'missing-app', sourceEnv: 'dev', targetEnv: 'sit' }),
+        /could not find application 'missing-app'/,
+      );
+    });
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('optionsFromArgs treats two args as envs in the current directory', () => {
+  assert.deepEqual(optionsFromArgs(['dev', 'test']), {
+    sourceEnv: 'dev',
+    targetEnv: 'test',
+  });
+});
+
+test('optionsFromArgs treats a non-directory first arg as the application name', () => {
+  assert.deepEqual(optionsFromArgs(['my-app', 'dev', 'test']), {
+    application: 'my-app',
+    sourceEnv: 'dev',
+    targetEnv: 'test',
+  });
+});
+
+test('optionsFromArgs treats a directory first arg as the path', () => {
+  const path = makeApplication({ envs: { dev: '1.2.3', sit: '1.0.0' } });
+  try {
+    assert.deepEqual(optionsFromArgs([path, 'dev', 'sit']), {
+      path,
+      sourceEnv: 'dev',
+      targetEnv: 'sit',
+    });
+  } finally {
+    cleanup(path);
+  }
+});
+
+test('optionsFromArgs accepts an explicit path and application', () => {
+  assert.deepEqual(optionsFromArgs(['/gitops/applications', 'my-app', 'dev', 'test']), {
+    path: '/gitops/applications',
+    application: 'my-app',
+    sourceEnv: 'dev',
+    targetEnv: 'test',
+  });
+});
+
+test('optionsFromArgs rejects the wrong number of arguments', () => {
+  assert.equal(optionsFromArgs(['dev']), null);
+  assert.equal(optionsFromArgs(['a', 'b', 'c', 'd', 'e']), null);
 });

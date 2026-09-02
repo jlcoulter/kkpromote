@@ -34,7 +34,10 @@ my-app/
     └── kustomization.yaml
 ```
 
-When you run `kkpromote my-app dev test` it will copy the `newTag` of the `my-app` image from the source overlay (dev) into the target overlay (test).
+When you run `kkpromote my-app dev test` from the directory that contains
+`my-app/`, it will copy the `newTag` of the `my-app` image from the source
+overlay (dev) into the target overlay (test). Path is optional: if omitted, the
+current directory is searched for the application.
 
 ## Install
 
@@ -47,14 +50,18 @@ npm install -g kkpromote
 Or run without installing:
 
 ```bash
-npx kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit
+npx kkpromote my-app dev sit
+npx kkpromote my-app dev sit
 ```
 
 ## Usage
 
 ```bash
-kkpromote <path> <source-env> <target-env> [options]
+kkpromote [path] <application> <source-env> <target-env> [options]
 ```
+
+`path` defaults to the current directory. The application is then found as a
+subdirectory of that path, or as overlays already in the current directory.
 
 | Option | Description |
 | --- | --- |
@@ -62,11 +69,14 @@ kkpromote <path> <source-env> <target-env> [options]
 | `-h, --help` | Show help |
 | `-v, --version` | Show the version |
 
-Example:
+Examples:
 
 ```bash
-kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit
-# my-app (dev -> sit): 1.0.0 -> 1.2.3
+kkpromote my-app dev test
+# my-app (dev -> test): 1.0.0 -> 1.2.3
+
+kkpromote ~/my-gitops-repo/applications my-app dev sit
+# using a path
 ```
 
 ## Programmatic use
@@ -75,11 +85,18 @@ kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit
 import { promote } from 'kkpromote';
 
 const result = promote({
-  path: '/path/to/my-gitops-repo/applications/my-app',
+  application: 'my-app',
   sourceEnv: 'dev',
   targetEnv: 'sit',
 });
 // { changed: true, tag: '1.2.3', previousTag: '1.0.0', ... }
+
+promote({
+  path: '/path/to/my-gitops-repo/applications',
+  application: 'my-app',
+  sourceEnv: 'dev',
+  targetEnv: 'sit',
+});
 ```
 
 ## Development
@@ -88,11 +105,3 @@ const result = promote({
 npm install
 npm test
 ```
-
-## Author
-
-Steve Swinsburg 
-
-## License
-
-[MIT](LICENSE)

@@ -1,5 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { existsSync, lstatSync, readFileSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 
 import { parseDocument } from 'yaml';
 
@@ -11,6 +11,18 @@ export class PromoteError extends Error {}
 /** Resolve the kustomization.yaml for an application's environment overlay. */
 export function kustomizationPath(path, environment) {
   return join(path, environment, KUSTOMIZATION_FILE);
+}
+
+export function hasOverlay(dir, environment) {
+  return existsSync(kustomizationPath(dir, environment));
+}
+
+function isDirectory(path) {
+  try {
+    return lstatSync(path).isDirectory();
+  } catch {
+    return false;
+  }
 }
 
 function readFileOrThrow(file) {
@@ -48,26 +60,91 @@ function withLineEndings(output, original) {
 }
 
 /**
+ * Locate the application overlay directory.
+ *
+ * `path` defaults to the current working directory. When `application` is set,
+ * a subdirectory of that name is preferred; otherwise overlays already in
+ * `path` are used (so the command works from inside the app directory).
+ *
+ * @param {string} [path]
+ * @param {string} [application]
+ * @param {string} sourceEnv
+ * @returns {{path: string, application: string}}
+ */
+export function resolveAppPath(path, application, sourceEnv) {
+  const base = path == null || path === '' ? process.cwd() : path;
+
+  if (application) {
+    const nested = join(base, application);
+    if (hasOverlay(nested, sourceEnv)) {
+      return { path: nested, application };
+    }
+    if (hasOverlay(base, sourceEnv)) {
+      return { path: base, application };
+    }
+    throw new PromoteError(`could not find application '${application}' in ${base}`);
+  }
+
+  if (hasOverlay(base, sourceEnv)) {
+    return { path: base, application: basename(resolve(base)) };
+  }
+
+  throw new PromoteError(`${kustomizationPath(base, sourceEnv)} does not exist`);
+}
+
+/**
+ * Interpret CLI positionals as promote options.
+ *
+ * 2 args: `<source-env> <target-env>` (current directory is the app)
+ * 3 args: `<path-or-application> <source-env> <target-env>`
+ * 4 args: `<path> <application> <source-env> <target-env>`
+ *
+ * @param {string[]} positionals
+ * @returns {{path?: string, application?: string, sourceEnv: string, targetEnv: string} | null}
+ */
+export function optionsFromArgs(positionals) {
+  if (positionals.length === 2) {
+    const [sourceEnv, targetEnv] = positionals;
+    return { sourceEnv, targetEnv };
+  }
+  if (positionals.length === 3) {
+    const [first, sourceEnv, targetEnv] = positionals;
+    if (isDirectory(first)) {
+      return { path: first, sourceEnv, targetEnv };
+    }
+    return { application: first, sourceEnv, targetEnv };
+  }
+  if (positionals.length === 4) {
+    const [path, application, sourceEnv, targetEnv] = positionals;
+    return { path, application, sourceEnv, targetEnv };
+  }
+  return null;
+}
+
+/**
  * Copy an application's image tag from a source environment overlay into a target one.
  *
  * @param {object} options
- * @param {string} options.path directory for the application, containing an environment
- *   subdirectory per overlay (e.g. `<gitops-repo>/applications/hcd-search-api`); the
- *   application name used to match the kustomize image entry is the directory's basename
+ * @param {string} [options.path] directory to search; defaults to the current working
+ *   directory. May be the application overlay directory itself, or a parent that
+ *   contains `<application>/`
+ * @param {string} [options.application] image/directory name to match; defaults to
+ *   the basename of the resolved application directory
  * @param {string} options.sourceEnv environment subdirectory to copy the tag from
  * @param {string} options.targetEnv environment subdirectory to copy the tag into
  * @param {boolean} [options.dryRun] when true, compute the change without writing
  * @returns {{changed: boolean, application: string, sourceEnv: string, targetEnv: string,
  *   tag: string, previousTag: string, targetFile: string}}
  */
-export function promote({ path, sourceEnv, targetEnv, dryRun = false }) {
+export function promote({ path, application: applicationName, sourceEnv, targetEnv, dryRun = false }) {
   if (sourceEnv === targetEnv) {
     throw new PromoteError('source and target environment must be different');
   }
 
-  const application = basename(path);
-  const sourceFile = kustomizationPath(path, sourceEnv);
-  const targetFile = kustomizationPath(path, targetEnv);
+  const resolved = resolveAppPath(path, applicationName, sourceEnv);
+  const application = resolved.application;
+  const sourceFile = kustomizationPath(resolved.path, sourceEnv);
+  const targetFile = kustomizationPath(resolved.path, targetEnv);
 
   const sourceDoc = parseDocument(readFileOrThrow(sourceFile));
   const sourceTag = findImage(sourceDoc, application, sourceFile).get('newTag');
@@ -92,4 +169,3 @@ export function promote({ path, sourceEnv, targetEnv, dryRun = false }) {
   result.changed = true;
   return result;
 }
-
