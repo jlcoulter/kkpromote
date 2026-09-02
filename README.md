@@ -53,7 +53,7 @@ Or run without installing:
 
 ```bash
 npx kkpromote my-app dev sit
-npx kkpromote my-app dev sit
+npx kkpromote ~/my-gitops-repo/ my-app dev sit
 ```
 
 ## Usage
@@ -77,7 +77,7 @@ Examples:
 kkpromote my-app dev test
 # my-app (dev -> test): 1.0.0 -> 1.2.3
 
-kkpromote ~/my-gitops-repo/applications my-app dev sit
+kkpromote ~/my-gitops-repo my-app dev sit
 # using a path
 ```
 
@@ -94,7 +94,7 @@ const result = promote({
 // { changed: true, tag: '1.2.3', previousTag: '1.0.0', ... }
 
 promote({
-  path: '/path/to/my-gitops-repo/applications',
+  path: '/path/to/my-gitops-repo/',
   application: 'my-app',
   sourceEnv: 'dev',
   targetEnv: 'sit',
