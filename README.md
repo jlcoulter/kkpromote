@@ -3,6 +3,8 @@
 A container image tag promoter for Gitops that works with Kubernetes and Kustomize, promoting an application from one Kustomize environment overlay to another.
 
 [![CI](https://github.com/steveswinsburg/kkpromote/actions/workflows/ci.yml/badge.svg)](https://github.com/steveswinsburg/kkpromote/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/kkpromote.svg)](https://www.npmjs.com/package/kkpromote)
+[![license](https://img.shields.io/github/license/steveswinsburg/kkpromote.svg)](LICENSE)
 
 Promotes a container image tag for an application from one Kustomize environment
 overlay to another in a GitOps repository.
