@@ -22,7 +22,7 @@ images:
 `;
 }
 
-function makeApplication({ application = 'hcd-search-api', envs }) {
+function makeApplication({ application = 'my-app', envs }) {
   const repo = mkdtempSync(join(tmpdir(), 'kip-'));
   const path = join(repo, 'applications', application);
   for (const [env, tag] of Object.entries(envs)) {
@@ -48,7 +48,7 @@ test('promotes the source tag into the target overlay', () => {
   try {
     const result = promote({ path, sourceEnv: 'dev', targetEnv: 'sit' });
     assert.equal(result.changed, true);
-    assert.equal(result.application, 'hcd-search-api');
+    assert.equal(result.application, 'my-app');
     assert.equal(result.previousTag, '1.0.0');
     assert.equal(result.tag, '1.2.3');
     assert.equal(tagIn(path, 'sit'), '1.2.3');

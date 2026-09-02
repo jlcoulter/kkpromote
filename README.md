@@ -10,7 +10,7 @@ directory and each environment is a subdirectory containing that overlay's
 `kustomization.yaml`:
 
 ```
-<path>/                      e.g. <gitops-repo>/applications/hcd-search-api
+<path>/                      e.g. <gitops-repo>/applications/my-app
 ├── dev/
 │   └── kustomization.yaml
 ├── sit/
@@ -20,7 +20,7 @@ directory and each environment is a subdirectory containing that overlay's
 ```
 
 The application name used to match the image entry is the basename of `path`
-(e.g. `hcd-search-api` above). It copies the `newTag` of the image whose name
+(e.g. `my-app` above). It copies the `newTag` of the image whose name
 ends with `/<application>` from the source overlay into the target overlay,
 preserving comments and formatting.
 
@@ -35,7 +35,7 @@ npm install -g kkpromote
 Or run without installing:
 
 ```bash
-npx kkpromote ~/dev/hcd-tenant-config/applications/hcd-search-api dev sit
+npx kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit
 ```
 
 ## Usage
@@ -53,8 +53,8 @@ kkpromote <path> <source-env> <target-env> [options]
 Example:
 
 ```bash
-kkpromote ~/dev/hcd-tenant-config/applications/hcd-search-api dev sit
-# hcd-search-api (dev -> sit): 1.0.0 -> 1.2.3
+kkpromote ~/dev/my-gitops-repo/applications/my-app dev sit
+# my-app (dev -> sit): 1.0.0 -> 1.2.3
 ```
 
 ## Programmatic use
@@ -63,7 +63,7 @@ kkpromote ~/dev/hcd-tenant-config/applications/hcd-search-api dev sit
 import { promote } from 'kkpromote';
 
 const result = promote({
-  path: '/path/to/hcd-tenant-config/applications/hcd-search-api',
+  path: '/path/to/my-gitops-repo/applications/my-app',
   sourceEnv: 'dev',
   targetEnv: 'sit',
 });
@@ -88,7 +88,7 @@ npm test
 
 ## Author
 
-Steve Swinsburg
+Steve Swinsburg 
 
 ## License
 
