@@ -1,0 +1,41 @@
+{
+  "name": "kkpromote",
+  "version": "1.0.0",
+  "description": "A gitops tool to promote a container image tag for an application from one Kustomize environment overlay to another.",
+  "type": "module",
+  "bin": {
+    "kkpromote": "bin/cli.js"
+  },
+  "exports": "./src/promote.js",
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steveswinsburg/kkpromote.git"
+  },
+  "homepage": "https://github.com/steveswinsburg/kkpromote#readme",
+  "bugs": {
+    "url": "https://github.com/steveswinsburg/kkpromote/issues"
+  },
+  "author": "Steve Swinsburg",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "kustomize",
+    "gitops",
+    "kubernetes",
+    "image",
+    "promote"
+  ],
+  "dependencies": {
+    "yaml": "^2.5.0"
+  }
+}
