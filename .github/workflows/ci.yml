@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  release:
+    types: [published]
 
 jobs:
   build-and-test:
@@ -23,10 +25,10 @@ jobs:
 
   publish:
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v7
@@ -48,14 +50,4 @@ jobs:
             echo "kkpromote@${version} is already on npm, skipping publish"
           else
             npm publish
-          fi
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          version="v$(node -p "require('./package.json').version")"
-          if gh release view "$version" >/dev/null 2>&1; then
-            echo "${version} already exists, skipping GitHub Release"
-          else
-            gh release create "$version" --generate-notes --target "$GITHUB_SHA"
           fi
